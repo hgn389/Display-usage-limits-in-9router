@@ -1,5 +1,9 @@
 # Display usage limits in 9router
 
+![OpenAI Codex connections and usage limits](https://raw.githubusercontent.com/hgn389/Display-usage-limits-in-9router/main/images/OpenAI%20Codex%201.jpg)
+
+![OpenAI Codex dashboard preview](https://raw.githubusercontent.com/hgn389/Display-usage-limits-in-9router/main/images/OpenAI%20Codex.png)
+
 Version **v1.0.0** · [Tiếng Việt](Readme-vi.md) · [Installation reference](INSTALL.txt)
 
 Adds Codex usage bars and administrator notes to the existing 9router dashboard:

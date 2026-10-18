@@ -1,5 +1,9 @@
 # Hiển thị giới hạn sử dụng trong 9router
 
+![Danh sách tài khoản Codex và quota còn lại](https://raw.githubusercontent.com/hgn389/Display-usage-limits-in-9router/main/images/OpenAI%20Codex%201.jpg)
+
+![Giao diện dashboard OpenAI Codex](https://raw.githubusercontent.com/hgn389/Display-usage-limits-in-9router/main/images/OpenAI%20Codex.png)
+
 Phiên bản **v1.0.0** · [English](Readme.md) · [Hướng dẫn cài chi tiết](INSTALL.txt)
 
 Bổ sung quota Codex và ghi chú quản trị vào trang gốc của 9router:
