@@ -13,6 +13,7 @@ port; no browser extension is required.
 ## Features
 
 - **Weekly** on the left, **5h** next, and **End date:** on the right.
+- On `/dashboard/providers/antigravity`, a compact line below each email shows remaining quota and reset countdowns for the model groups/windows returned by 9router, refreshed approximately every 30 seconds.
 - Remaining percentages, reset countdowns, and reset clock time for 5h. Hover for the full reset timestamp in your browser timezone.
 - Automatic refresh approximately every **30 seconds** while the Codex tab is visible. At most two automatic quota requests run concurrently. Returning to the tab refreshes overdue data.
 - End date is a free-text administrator note, such as `ngày 24 hết gói Plus`. Click the square pencil button to edit; **Save**, Enter, or clicking outside saves. Escape cancels. No calendar validation or automatic account disabling.

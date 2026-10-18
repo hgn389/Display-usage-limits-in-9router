@@ -15,6 +15,71 @@ async function setup(accounts = [{ id: 'c1', email: 'a@example.test', name: 'Acc
   await pause();
   return dom;
 }
+test('Antigravity shows compact real quota percentages and resets below the email without note requests', async () => {
+  const dom = new JSDOM(markup, { url: 'http://localhost:9090/dashboard/providers/antigravity', runScripts: 'outside-only', pretendToBeVisual: true });
+  const now = Date.now();
+  dom.window.Date.now = () => now;
+  dom.window.fetch = async url => {
+    assert.ok(url === '/api/providers' || url === '/api/usage/ag1');
+    return { ok: true, json: async () => url === '/api/providers' ? { connections: [{ id: 'ag1', provider: 'antigravity', email: 'a@example.test', name: 'Account' }] } : { quotas: {
+      gemini_weekly: { displayName: 'Gemini (Weekly)', remainingPercentage: 25.10632, used: 749, total: 1000, resetAt: new Date(now + 5 * 86400000 + 3 * 3600000).toISOString() },
+      claude_gpt_weekly: { displayName: 'Claude & GPT (Weekly)', remainingPercentage: 0, used: 1000, total: 1000, resetAt: new Date(now + 2 * 3600000).toISOString() },
+      gemini_session: { displayName: 'Gemini (5h)', used: 20, total: 80 },
+      missing: { remainingPercentage: null, used: null, total: 1000 }
+    } } };
+  };
+  try {
+    dom.window.eval(nativeSource(script));
+    await pause();
+    const panel = dom.window.document.querySelector('[data-antigravity-quota]');
+    assert.equal(panel.previousElementSibling.textContent, 'a@example.test');
+    assert.match(panel.textContent, /Gemini tuần: 25% \(reset 5d 3h\)/);
+    assert.match(panel.textContent, /Claude\/GPT tuần: 0% \(reset 2h 0m\)/);
+    assert.match(panel.textContent, /Gemini 5h: 75%/);
+    assert.match(panel.textContent, /missing: chưa có dữ liệu/);
+    assert.match(panel.firstElementChild.title, /^Reset:/);
+    assert.equal(dom.window.document.querySelectorAll('[role=progressbar], [data-codex-inline-expiry]').length, 0);
+    await pause();
+    assert.equal(dom.window.document.querySelectorAll('[data-antigravity-quota]').length, 1);
+  } finally { dom.window.close(); }
+});
+
+test('switching between Codex and Antigravity immediately refreshes and isolates accounts with the same email', async () => {
+  const accounts = [
+    { id: 'cx1', provider: 'codex', email: 'a@example.test', name: 'Account' },
+    { id: 'ag1', provider: 'antigravity', email: 'a@example.test', name: 'Account' }
+  ];
+  let noteReads = 0;
+  const usageReads = [];
+  const dom = await setup(undefined, undefined, markup, nativeSource(script), async url => {
+    let data;
+    if (url === '/api/providers') data = { connections: accounts };
+    else if (String(url).endsWith('/__codex_addon/expiry')) { noteReads++; data = {}; }
+    else {
+      usageReads.push(url);
+      data = url.endsWith('/ag1') ? { quotas: { gemini_weekly: { displayName: 'Gemini (Weekly)', remainingPercentage: 35 } } } : { quotas: { session: { remaining: 70 }, weekly: { remaining: 60 } } };
+    }
+    return { ok: true, json: async () => data };
+  });
+  try {
+    const { document, history } = dom.window;
+    assert.equal(document.querySelector('[data-codex-quota]').dataset.codexQuota, 'cx1');
+    history.pushState({}, '', '/dashboard/providers/antigravity');
+    document.body.append(document.createElement('div'));
+    await pause();
+    assert.equal(document.querySelector('[data-codex-quota]'), null);
+    assert.equal(document.querySelector('[data-antigravity-quota]').dataset.antigravityQuota, 'ag1');
+    assert.match(document.querySelector('[data-antigravity-quota]').textContent, /35%/);
+    assert.equal(noteReads, 1);
+    history.pushState({}, '', '/dashboard/providers/codex');
+    document.body.append(document.createElement('div'));
+    await pause();
+    assert.equal(document.querySelector('[data-antigravity-quota]'), null);
+    assert.equal(document.querySelector('[data-codex-quota]').dataset.codexQuota, 'cx1');
+    assert.equal(noteReads, 2);
+    assert.deepEqual(usageReads, ['/api/usage/cx1', '/api/usage/ag1', '/api/usage/cx1']);
+  } finally { dom.window.close(); }
+});
 test('mounts quota once, adds expiry to native modal, saves after email', async () => {
   const dom = await setup();
   try {

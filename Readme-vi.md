@@ -12,6 +12,7 @@ Bổ sung quota Codex và ghi chú quản trị vào trang gốc của 9router:
 ## Tính năng
 
 - Thanh **Weekly** bên trái, **5h** ở giữa và **End date:** bên phải.
+- Trang `/dashboard/providers/antigravity` hiển thị dòng quota ngắn dưới email từng tài khoản: phần trăm còn lại và đếm ngược reset theo nhóm model/cửa sổ mà 9router trả về, tự cập nhật khoảng 30 giây/lần.
 - Hiện phần trăm còn lại, đếm ngược reset và giờ reset cho 5h. Rê chuột để xem đầy đủ ngày giờ theo múi giờ trình duyệt.
 - Tự cập nhật khoảng **30 giây/lần** khi tab Codex hiển thị, tối đa hai request quota đồng thời. Tab ẩn sẽ tạm dừng; quay lại sẽ cập nhật nếu đã đến hạn.
 - End date là **ghi chú text tự do**, ví dụ `ngày 24 hết gói Plus`. Nhấn nút bút trong ô vuông để sửa. Bấm **Save**, Enter hoặc nhấp ra ngoài để lưu; Escape để hủy. Không kiểm tra ngày và không tự vô hiệu hóa tài khoản.

@@ -2,7 +2,7 @@
 // @name         9router Codex Connections Addon
 // @namespace    9router-codex-addon
 // @version      1.0.0
-// @description  Codex quota and manual expiry without modifying 9router
+// @description  Codex quota, compact Antigravity quota and administrator notes
 // @match        http://localhost:9090/*
 // @grant        none
 // @run-at       document-idle
@@ -22,6 +22,8 @@
   let expiryLoadError = false;
   let expiryInputSequence = 0;
   let datesRevision = 0;
+  let loadedProvider = null;
+  const currentProvider = () => /^\/dashboard\/providers\/(codex|antigravity)\/?$/.exec(location.pathname)?.[1] || null;
   const quotas = new Map();
   const watched = new WeakSet();
   const labels = { session: '5h', weekly: 'Weekly', review_session: 'Review 5h', review_weekly: 'Review weekly', spark_session: 'Spark 5h', spark_weekly: 'Spark weekly' };
@@ -65,6 +67,7 @@
     .codex-addon-updates button{margin:0;padding:1px 6px;border:1px solid #71809688;border-radius:5px;background:transparent;color:inherit;font-size:10px;text-decoration:none;line-height:1.7}
     .codex-addon-update-status{font-size:10px;opacity:.8}
     .codex-addon-error{color:#e97575}
+    .codex-addon-antigravity{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:11px;line-height:1.7;margin-top:3px;color:inherit;opacity:.8}
     @media(max-width:640px){.codex-addon-summary:has(.codex-addon-inline-expiry){grid-template-columns:repeat(2,minmax(0,1fr))}.codex-addon-inline-expiry{grid-column:1/-1}}
   `;
   document.head.append(style);
@@ -90,19 +93,23 @@
   }
   function scheduleLoad() {
     clearTimeout(refreshTimer);
-    if (document.hidden || !/^\/dashboard\/providers\/codex\/?$/.test(location.pathname)) return;
-    refreshTimer = setTimeout(() => void load(), Math.max(0, lastLoad + refreshInterval - Date.now()));
+    const provider = currentProvider();
+    if (document.hidden || !provider) return;
+    refreshTimer = setTimeout(() => void load(), provider !== loadedProvider ? 0 : Math.max(0, lastLoad + refreshInterval - Date.now()));
   }
   async function load() {
-    if (document.hidden || !/^\/dashboard\/providers\/codex\/?$/.test(location.pathname)) return;
+    const provider = currentProvider();
+    if (document.hidden || !provider) return;
     if (loading) return;
-    if (lastLoad !== null && Date.now() - lastLoad < refreshInterval) { scheduleLoad(); return; }
+    if (provider === loadedProvider && lastLoad !== null && Date.now() - lastLoad < refreshInterval) { scheduleLoad(); return; }
     loading = true;
+    loadedProvider = provider;
     lastLoad = Date.now();
     try {
       const result = await api('/api/providers');
-      connections = (result.connections || []).filter(c => c.provider === 'codex').map(c => ({ id: c.id, email: c.email, name: c.name }));
-      try {
+      if (currentProvider() !== provider) return;
+      connections = (result.connections || []).filter(c => c.provider === provider).map(c => ({ id: c.id, email: c.email, name: c.name, provider: c.provider }));
+      if (provider === 'codex') try {
         const revision = datesRevision;
         const loaded = serverStorage ? await api(expiryEndpoint) : JSON.parse(localStorage.getItem(storageKey) || '{}');
         if (revision === datesRevision) dates = loaded;
@@ -113,7 +120,7 @@
       // Bounded concurrency, one request per account per refresh window.
       const queue = [...connections];
       await Promise.all(Array.from({ length: 2 }, async () => {
-        for (let c; (c = queue.shift());) await refresh(c);
+        for (let c; currentProvider() === provider && (c = queue.shift());) await refresh(c);
       }));
     } catch (error) { console.warn('[Codex addon] Unable to load metadata:', error.message); }
     finally { loading = false; scheduleLoad(); }
@@ -133,10 +140,11 @@
   }
   function uniqueAccount(row) {
     const texts = new Set(identityNodes(row).map(text => text.textContent.trim()));
-    const emails = connections.filter(c => c.email && texts.has(c.email.trim()));
+    const accounts = connections.filter(c => c.provider === currentProvider());
+    const emails = accounts.filter(c => c.email && texts.has(c.email.trim()));
     if (emails.length === 1) return emails[0];
     if (new Set(emails.map(c => c.email.trim())).size > 1) return null;
-    const names = (emails.length ? emails : connections).filter(c => c.name && texts.has(c.name.trim()));
+    const names = (emails.length ? emails : accounts).filter(c => c.name && texts.has(c.name.trim()));
     return names.length === 1 ? names[0] : null;
   }
   const isEdit = button => !button.closest('.codex-addon') && (
@@ -215,6 +223,40 @@
     resetTooltip(meter, q);
     meter.append(label, track);
     return meter;
+  }
+  function antigravityQuota(panel, value) {
+    const signature = JSON.stringify(value || null);
+    if (panel.dataset.signature !== signature) {
+      panel.dataset.signature = signature;
+      panel.replaceChildren();
+      const number = value => (typeof value === 'number' || typeof value === 'string' && value.trim() !== '') && Number.isFinite(Number(value)) ? Number(value) : null;
+      for (const [key, quota] of Object.entries(value?.quotas || {})) {
+        if (!quota || typeof quota !== 'object') continue;
+        const percentage = number(quota.remainingPercentage);
+        const fraction = number(quota.remainingFraction);
+        const used = number(quota.used), total = number(quota.total);
+        const remaining = percentage ?? (fraction === null ? (used !== null && total > 0 ? 100 * (1 - used / total) : null) : fraction * 100);
+        const label = (typeof quota.displayName === 'string' ? quota.displayName : key.replaceAll('_', ' '))
+          .replace(/\s*\(Weekly\)/i, ' tuần').replace(/\s*\(5h\)/i, ' 5h').replace(/Claude\s*&\s*GPT/i, 'Claude/GPT');
+        const text = quota.unlimited === true ? 'không giới hạn' : remaining === null ? 'chưa có dữ liệu' : `${Math.max(0, Math.min(100, remaining)).toFixed(0)}%`;
+        const item = el('span', `${label}: ${text}`);
+        const reset = new Date(quota.resetAt || '');
+        if (Number.isFinite(reset.getTime())) {
+          const countdown = el('span'); countdown.dataset.antigravityResetAt = reset.toISOString();
+          item.title = `Reset: ${reset.toLocaleString()}`;
+          item.append(countdown);
+        }
+        panel.append(item);
+      }
+      if (!panel.childElementCount) panel.append(el('span', value ? 'Quota: chưa có dữ liệu' : 'Quota: đang tải…'));
+    }
+    for (const node of panel.querySelectorAll('[data-antigravity-reset-at]')) {
+      const minutes = Math.max(0, Math.ceil((new Date(node.dataset.antigravityResetAt).getTime() - Date.now()) / 60000));
+      const days = Math.floor(minutes / 1440), hours = Math.floor(minutes % 1440 / 60), mins = minutes % 60;
+      const duration = days ? `${days}d ${hours}h` : hours ? `${hours}h ${mins}m` : `${mins}m`;
+      const text = minutes > 0 ? ` (reset ${duration})` : ' (đến giờ reset)';
+      if (node.textContent !== text) node.textContent = text;
+    }
   }
   function inlineExpiry(id) {
     const editor = el('div', '', 'codex-addon-inline-expiry');
@@ -350,7 +392,8 @@
     return widget;
   }
   function render() {
-    if (!/^\/dashboard\/providers\/codex\/?$/.test(location.pathname)) return;
+    const provider = currentProvider();
+    if (!provider) return;
     const root = connectionsRoot();
     const mounted = new Set();
     for (const button of root?.querySelectorAll('button') || []) {
@@ -358,6 +401,22 @@
       const match = findRow(button);
       if (!match) continue;
       const { node: row, c } = match;
+      if (provider === 'antigravity') {
+        for (const node of row.querySelectorAll('[data-codex-quota], [data-codex-expiry]')) node.remove();
+        for (const node of row.querySelectorAll('[data-antigravity-quota]')) if (node.dataset.antigravityQuota !== c.id) node.remove();
+        let panel = row.querySelector('[data-antigravity-quota]');
+        if (!panel) {
+          const texts = identityNodes(row);
+          const identity = (texts.find(text => text.textContent.trim() === c.email?.trim()) || texts.find(text => text.textContent.trim() === c.name?.trim()))?.parentElement;
+          panel = el('div', '', 'codex-addon codex-addon-antigravity');
+          panel.dataset.antigravityQuota = c.id;
+          if (identity && identity !== row) identity.after(panel); else row.append(panel);
+        }
+        mounted.add(panel);
+        antigravityQuota(panel, quotas.get(c.id)?.value);
+        continue;
+      }
+      for (const node of row.querySelectorAll('[data-antigravity-quota]')) node.remove();
       if (!watched.has(button)) {
         watched.add(button);
         button.addEventListener('click', () => { selected = findRow(button)?.c.id || null; setTimeout(render, 0); }, true);
@@ -419,7 +478,7 @@
       }
       updateResetLabels(panel);
     }
-    for (const node of root?.querySelectorAll('[data-codex-quota], [data-codex-expiry]') || []) {
+    for (const node of root?.querySelectorAll('[data-codex-quota], [data-codex-expiry], [data-antigravity-quota]') || []) {
       if (!mounted.has(node)) node.remove();
     }
     if (nativeMode) return;
@@ -456,7 +515,7 @@
   let timer;
   new MutationObserver(() => {
     clearTimeout(timer);
-    timer = setTimeout(() => { if (/^\/dashboard\/providers\/codex\/?$/.test(location.pathname)) { render(); void load(); } }, 150);
+    timer = setTimeout(() => { if (currentProvider()) { render(); void load(); } }, 150);
   }).observe(document.body, { childList: true, subtree: true, characterData: true });
   window.addEventListener('storage', () => { if (!nativeMode && !serverStorage) { try { dates = JSON.parse(localStorage.getItem(storageKey) || '{}'); render(); } catch {} } });
   document.addEventListener('visibilitychange', () => { if (document.hidden) clearTimeout(refreshTimer); else void load(); });
