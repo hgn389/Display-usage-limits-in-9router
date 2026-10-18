@@ -30,6 +30,21 @@ or consume reset credits. 9router may refresh OAuth internally while reading usa
 - Permission to write one installed browser JavaScript file. No gateway restart, inference-port change, or modification to the 9router database is needed.
 - Browser access to the addon service on **9092**, using the same host as the dashboard. Current supplied configuration supports a trusted HTTP network; HTTPS/TLS setups need a separately configured integration.
 
+### Custom dashboard ports
+
+The addon does not discover dashboard ports automatically. A dashboard on a port
+such as **20128** works when the addon service is configured for that exact
+origin and its local upstream, and the browser can reach the addon API on **9092**
+at the same hostname. For example, if 9router listens locally on port 20128:
+
+```sh
+HOST=192.168.1.10 PORT=9092 DASHBOARD_ORIGIN=http://192.168.1.10:20128 UPSTREAM=http://127.0.0.1:20128 node service.mjs
+```
+
+Replace the example address with the server address. Configure the same values
+in the service manager/firewall. The dashboard port and addon API port are
+separate; changing the dashboard port does not move the addon API from 9092.
+
 ## Install on the original dashboard
 
 After the source is published, clone the repository into a directory separate from 9router:
@@ -111,6 +126,26 @@ This restores the original browser asset only if the installed file still matche
 the expected addon version. A 9router upgrade can replace the patch; do not restore
 an old file over an upgraded package. Archive the old `.native-ui/` backup and
 prepare a new one for the upgraded version. Stop only the addon service when removing it.
+
+### After upgrading 9router
+
+The native UI patch is stored in a JavaScript asset inside the installed 9router
+package. A 9router upgrade can replace that asset, so the quota bars and note may
+disappear until the patch is applied again. The addon checkout, note file under
+`data/`, and addon service are separate and do not need to be reinstalled. After
+upgrading, keep a copy of `.native-ui/`, then prepare and apply against the new
+installed package:
+
+```sh
+cp -a .native-ui .native-ui-before-router-upgrade
+node native-ui.mjs prepare
+node native-ui.mjs apply
+```
+
+Use the same explicit app path as the original installation if it is not the
+default. If `prepare` reports an unrecognized provider page, the new 9router
+version changed its UI; wait for a compatible addon update instead of restoring
+an old asset. Force reload the dashboard or clear its cache after applying.
 
 ## Development and release preparation
 

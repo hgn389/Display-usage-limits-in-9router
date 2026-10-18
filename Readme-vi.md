@@ -29,6 +29,21 @@ chỉ dùng API usage sẵn có, không gửi prompt đến model hoặc đổi 
 - Quyền ghi một file JavaScript giao diện trong package đã cài. Không cần restart 9router, đổi cổng inference hoặc sửa database 9router.
 - Trình duyệt phải truy cập được dịch vụ addon cổng **9092**, cùng hostname với dashboard. Cấu hình hiện tại dùng HTTP trong mạng tin cậy; HTTPS/TLS cần cấu hình tích hợp riêng.
 
+### Dashboard dùng cổng tùy chỉnh
+
+Addon không tự dò cổng dashboard. Dashboard chạy ở cổng khác, ví dụ **20128**,
+vẫn dùng được nếu cấu hình dịch vụ addon đúng origin đó và đúng cổng 9router nội
+bộ; trình duyệt đồng thời phải truy cập được API addon ở cổng **9092** cùng
+hostname với dashboard. Ví dụ 9router lắng nghe nội bộ ở cổng 20128:
+
+```sh
+HOST=192.168.1.10 PORT=9092 DASHBOARD_ORIGIN=http://192.168.1.10:20128 UPSTREAM=http://127.0.0.1:20128 node service.mjs
+```
+
+Thay địa chỉ ví dụ bằng địa chỉ server của bạn và đặt cùng cấu hình trong trình
+quản lý dịch vụ/tường lửa. Cổng dashboard và cổng API addon riêng biệt; đổi cổng
+dashboard không tự chuyển API addon khỏi cổng 9092.
+
 ## Cài trên dashboard gốc
 
 Sau khi mã nguồn được công bố, clone vào thư mục riêng, không đặt trong package 9router:
@@ -105,6 +120,25 @@ Công cụ chỉ hoàn tác nếu file hiện có đúng bản addon dự kiến
 có thể ghi đè bản vá; không chép file cũ đè lên package mới. Hãy lưu trữ backup
 `.native-ui/` cũ rồi chuẩn bị backup mới theo phiên bản mới. Khi gỡ addon chỉ dừng
 dịch vụ addon, không dừng 9router.
+
+### Sau khi nâng cấp 9router
+
+Bản vá giao diện native nằm trong một file JavaScript của package 9router đã cài.
+Nâng cấp 9router có thể thay file này, khiến thanh quota và ghi chú tạm thời biến
+mất cho tới khi áp dụng lại bản vá. Mã nguồn addon, file ghi chú trong `data/` và
+dịch vụ addon được lưu riêng nên không cần cài lại addon. Sau khi nâng cấp, sao
+lưu `.native-ui/`, rồi chuẩn bị và áp dụng bản vá cho package mới:
+
+```sh
+cp -a .native-ui .native-ui-before-router-upgrade
+node native-ui.mjs prepare
+node native-ui.mjs apply
+```
+
+Nếu lúc cài ban đầu bạn truyền đường dẫn app riêng, hãy dùng lại đúng đường dẫn
+đó. Nếu `prepare` báo giao diện provider không nhận diện được, phiên bản 9router
+mới đã đổi cấu trúc trang; hãy chờ addon hỗ trợ phiên bản đó, không khôi phục file
+giao diện cũ. Sau khi áp dụng, tải mạnh lại dashboard hoặc xóa cache.
 
 ## Phát triển và chuẩn bị phát hành
 
