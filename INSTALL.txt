@@ -1,0 +1,191 @@
+Display usage limits in 9router — v1.0.0
+=======================================
+English overview: Readme.md
+Vietnamese overview: Readme-vi.md
+Repository: https://github.com/hgn389/Display-usage-limits-in-9router
+
+NATIVE DASHBOARD INSTALLATION
+-----------------------------
+Requires Node.js >=22 and an existing running 9router. Developed against 0.5.99.
+Keep the addon in its own directory. Runtime has no third-party dependencies.
+From the addon directory:
+
+  node native-ui.mjs prepare
+  node native-ui.mjs apply
+  HOST=127.0.0.1 PORT=9092 DASHBOARD_ORIGIN=http://127.0.0.1:9090 node service.mjs
+
+For a different installed app path:
+  node native-ui.mjs prepare /path/to/9router/app
+  node native-ui.mjs apply /path/to/9router/app
+
+Set ROUTER_APP_DIR=/path/to/9router/app on the service for future native updates.
+The default app path is /usr/lib/node_modules/9router/app. The installer changes
+only the provider-detail browser JavaScript asset. It never restarts 9router,
+changes gateway routing, or edits its account database. Native integration is
+an explicit exception to leaving installed package files untouched.
+
+The original asset and checksums are under .native-ui/ (ignored by Git). Keep
+this backup. Native UI changes can be overwritten by future 9router upgrades.
+The source addon and notes remain independent of the installed package.
+
+Open /dashboard/providers/codex on the original dashboard and sign in normally.
+Force reload (Ctrl+F5 / Cmd+Shift+R) or clear cached images/files. 9router's hashed
+assets use long-lived immutable cache headers; a normal reload may retain old code.
+No userscript/browser extension is needed in native mode.
+
+REMOTE CLIENTS AND FIREWALL
+--------------------------
+For LAN use set HOST to the server's trusted LAN address and DASHBOARD_ORIGIN to
+its exact dashboard origin, for example http://dashboard.example.test:9090.
+The browser must reach the SAME hostname on port 9092. Allow TCP 9092 only from
+the trusted client subnet. Opening 9090 alone does not allow note/update access.
+Do not expose this plain HTTP service to an untrusted network. Supplied native
+configuration does not handle HTTPS/TLS termination or arbitrary alternate origins.
+Keep all inference clients and existing tunnels on the original gateway endpoint.
+
+SERVICE CONFIGURATION
+---------------------
+HOST              Default 127.0.0.1
+PORT              Default 9092; native browser code expects 9092
+DASHBOARD_ORIGIN  Default http://127.0.0.1:9090; exact allowed browser origin
+UPSTREAM          Default http://127.0.0.1:9090; trusted local HTTP only
+DATA_DIR          Default data beside expiry-server.mjs
+ROUTER_APP_DIR    Default /usr/lib/node_modules/9router/app
+
+Start with node service.mjs to support in-app updates. This supervisor only
+reloads the addon service after successful update installation. Starting
+expiry-server.mjs directly allows notes/checks but disables Install update.
+An update briefly reloads only this addon API; quota and inference stay on 9router.
+A foreground command or transient systemd unit does not enable startup after reboot.
+
+Example persistent systemd unit (adapt paths, Node executable and LAN settings):
+
+  [Unit]
+  Description=9router usage limits addon
+  After=network.target
+
+  [Service]
+  WorkingDirectory=/opt/9router-addon
+  ExecStart=/usr/bin/node /opt/9router-addon/service.mjs
+  EnvironmentFile=/etc/9router-addon.env
+  Restart=on-failure
+  RestartSec=3
+  UMask=0077
+
+  [Install]
+  WantedBy=multi-user.target
+
+Place this in /etc/systemd/system/9router-addon.service. Create the environment
+file with HOST, PORT, DASHBOARD_ORIGIN, UPSTREAM and optional DATA_DIR/ROUTER_APP_DIR.
+The service account needs access to addon files, its data/backup directories and
+one installed 9router browser asset. Then, after stopping any previous addon
+writer (not 9router):
+
+  systemctl daemon-reload
+  systemctl enable --now 9router-addon.service
+
+Do not run two writers against the same notes file. No dashboard password,
+OAuth token or inference API key belongs in the addon environment or source.
+
+UI AND NOTES
+------------
+Weekly is on the left, 5h next, and End date on the right. Narrow screens wrap
+the note below the bars. Labels show remaining percentage. Missing quota stays
+unavailable rather than becoming 0% or 100%.
+5h example: 17% remaining (Resets in 1h 52m | 22:16)
+Weekly example: 56% remaining (Resets in 6d 4h)
+Full reset timestamps are also available on hover, in the browser timezone.
+Quota refreshes approximately every 30 seconds while the Codex tab is visible,
+with at most two automatic usage requests at once. It pauses when hidden and
+refreshes overdue data on return. Countdown rendering sends no extra request.
+Usage reads may internally refresh OAuth; the addon does not send model prompts,
+redeem reset credits or automatically test connections.
+
+End date is ordinary unbordered text: End date: ngày 24 hết gói Plus
+Click the square pencil icon to edit; Save, Enter or clicking outside persists
+the note. Escape cancels editing. A failed save keeps the draft for retry. Clear
+the text and save to remove it. Input is free text up to 500 characters, with no
+calendar/date validation. The note never disables a connection.
+
+Notes are stored in DATA_DIR/package-expiry.json, keyed by connection ID. The file
+is created on the first successful save. Writes are serialized and use atomic
+rename. Back up DATA_DIR separately. Removing/reimporting a connection may change
+its ID. Custom DATA_DIR locations must remain outside Git or be explicitly ignored.
+The service verifies the dashboard session through /api/auth/status, exact browser
+Origin and addon write header. Credentials are never exported to source/logs/Git.
+
+CHECK UPDATE AND INSTALL UPDATE
+------------------------------
+Check Update is a small rounded bordered button under End date. It checks only
+stable published Releases from the repository above. It never checks on each
+quota refresh. Checks are cached for 60 seconds. No Release -> No published
+releases yet. A higher version with an installable asset shows Install update
+vX.Y.Z. Installing requires an explicit button click and a dashboard login.
+
+Update packages must be named 9router-addon-vX.Y.Z.json and attached to the matching
+stable GitHub Release. Asset SHA-256 comes from GitHub and each contained file is
+also verified. Fixed file allowlists reject paths into data, Git metadata or
+installed account storage. New runtime dependencies and downgrades are rejected.
+Local source modifications block installation; back them up/commit them first.
+After an in-app update, later updates compare source to the recorded installation
+checksums rather than requiring a clean Git HEAD.
+
+Sources are backed up under .updates/ before replacing files. Syntax is checked
+before installation. Unexpected native asset changes abort installation; source
+files are restored on failure. .native-ui/ and note data are retained. Successful
+installation reloads only the addon service; force reload the browser afterward.
+Git history/remotes are not changed by the updater. The updater trusts maintainers
+of this repository: release code must be reviewed before publishing it.
+
+Prepare a release locally:
+  npm ci --ignore-scripts
+  npm test
+  npm run build:release
+
+This produces dist/9router-addon-v1.0.0.json and its checksum for version 1.0.0.
+For later releases, bump package.json, package-lock.json and client.js together.
+Only after authorization: push the reviewed branch, create a matching stable tag,
+and attach the generated JSON asset to a GitHub Release. A draft is invisible to
+the updater. Building creates no tag, upload or published Release automatically.
+Never publish data/, .native-ui/, .updates/, node_modules/, .env files, cookies,
+account exports, installed 9router chunks or personal Git configuration.
+
+MANUAL UI UPDATE AND RESTORE
+----------------------------
+After editing addon client.js:
+  node native-ui.mjs update
+
+This preserves the original backup and saves preceding patched revisions under
+.native-ui/revisions/. To remove the addon UI:
+  node native-ui.mjs restore
+
+The installer refuses unexpected installed-asset changes. After a 9router upgrade,
+archive the old backup and prepare one for the new package. Do not overwrite a
+new package with an older saved asset. Stop only the addon service when removing
+it, then force reload the original dashboard.
+
+LEGACY OPTIONAL MODES
+---------------------
+Userscript: install client.js using Tampermonkey or compatible tooling and change
+@match to exactly your trusted dashboard origin. Default is localhost:9090 only,
+never all websites. Legacy dates use localStorage key 9router-codex-addon-expiry-v1;
+they are browser/origin-specific, not synced across devices. The legacy modal
+expiry field remains a calendar date. Disable the userscript when using native UI.
+
+Proxy: HOST=127.0.0.1 PORT=9091 node server.mjs
+Open http://127.0.0.1:9091/dashboard/providers/codex. Dates use data/expiry.json,
+separate from native package-expiry.json, with no automatic migration. This mode
+does not install native UI on port 9090. Proxy is dashboard-only; keep inference
+on the gateway. It does not support WebSocket upgrades, HTTPS upstreams, TLS
+termination in front, or compressed HTML from upstream.
+
+COMPATIBILITY AND TESTS
+-----------------------
+DOM integration expects English Connections/Edit/Save labels, /api/providers,
+/api/usage/{id} and /api/auth/status. It uses no React internals. Ambiguous account
+rows are skipped. Changes in 9router markup, API or CSP may require addon changes.
+
+  npm test
+
+Tests use simulated DOM, mock upstreams and isolated files; no real account calls.
+Run an authenticated browser check after installation. MIT license: LICENSE.

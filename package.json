@@ -1,0 +1,18 @@
+{
+  "name": "9router-codex-addon",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Independent Codex quota and expiry dashboard addon for 9router",
+  "scripts": {
+    "start": "node server.mjs",
+    "start:native": "node service.mjs",
+    "test": "node --test",
+    "build:release": "node build-release.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.3"
+  }
+}

@@ -1,0 +1,12 @@
+data/
+node_modules/
+*.log
+.env
+coverage/
+.native-ui/
+.updates/
+dist/
+.env.*
+!.env.example
+*.pem
+*.key
