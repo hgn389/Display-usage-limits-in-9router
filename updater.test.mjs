@@ -47,7 +47,7 @@ test('release checks handle no release, current version, missing package, and wr
 });
 
 test('update package allowlist rejects traversal, damaged files, wrong version and added dependencies', async () => {
-  const bundle = await createBundle();
+  const bundle = withVersion(await createBundle(), '1.0.0');
   assert.ok(validateBundle(bundle, '1.0.0').has('client.js'));
   const traversal = structuredClone(bundle); traversal.files[0].path = '../data/expiry.json';
   assert.throws(() => validateBundle(traversal, '1.0.0'), /Invalid update file/);
@@ -63,7 +63,7 @@ test('update package allowlist rejects traversal, damaged files, wrong version a
 test('installer rolls back failed UI patch, preserves notes, prevents downgrade and accepts a later update', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'addon-install-'));
   try {
-    const bundle = await createBundle();
+    const bundle = withVersion(await createBundle(), '1.0.0');
     for (const file of bundle.files) await writeFile(path.join(root, file.path), Buffer.from(file.content, 'base64'));
     await mkdir(path.join(root, 'data')); await writeFile(path.join(root, 'data', 'package-expiry.json'), '{"account":"private note"}');
     const next = withVersion(bundle, '1.1.0');

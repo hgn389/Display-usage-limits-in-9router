@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         9router Codex Connections Addon
 // @namespace    9router-codex-addon
-// @version      1.0.0
+// @version      1.0.1
 // @description  Codex quota, compact Antigravity quota and administrator notes
 // @match        http://localhost:9090/*
 // @grant        none
@@ -199,11 +199,11 @@
       const days = Math.floor(minutes / 1440), hours = Math.floor(minutes % 1440 / 60), mins = minutes % 60;
       const duration = days ? `${days}d ${hours}h` : hours ? `${hours}h ${mins}m` : `${mins}m`;
       const clock = node.dataset.codexResetWindow === 'session' ? reset.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
-      const text = minutes > 0 ? ` (Resets in ${duration}${clock ? ` | ${clock}` : ''})` : ` (Reset due${clock ? ` | ${clock}` : ''})`;
+      const text = minutes > 0 ? ` (Resets in ${duration}${clock ? ` · ${clock}` : ''})` : ` (Reset due${clock ? ` · ${clock}` : ''})`;
       if (node.textContent !== text) {
         node.replaceChildren(minutes > 0 ? ' (Resets in ' : ' (Reset due');
         if (minutes > 0) node.append(el('span', duration, 'codex-addon-duration'));
-        if (clock) node.append(' | ', el('span', clock, 'codex-addon-reset-clock'));
+        if (clock) node.append(' · ', el('span', clock, 'codex-addon-reset-clock'));
         node.append(')');
       }
     }

@@ -1,4 +1,4 @@
-Display usage limits in 9router — v1.0.0
+Display usage limits in 9router — v1.0.1
 =======================================
 English overview: Readme.md
 Vietnamese overview: Readme-vi.md
@@ -142,7 +142,7 @@ Prepare a release locally:
   npm test
   npm run build:release
 
-This produces dist/9router-addon-v1.0.0.json and its checksum for version 1.0.0.
+This produces dist/9router-addon-v1.0.1.json and its checksum for version 1.0.1.
 For later releases, bump package.json, package-lock.json and client.js together.
 Only after authorization: push the reviewed branch, create a matching stable tag,
 and attach the generated JSON asset to a GitHub Release. A draft is invisible to

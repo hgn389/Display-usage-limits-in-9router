@@ -31,7 +31,8 @@ test('native expiry storage checks CORS and dashboard auth, persists concurrent 
     assert.equal((await fetch(url, { headers: { origin } })).status, 401);
     const versionUrl = url.replace('/expiry', '/version');
     assert.equal((await fetch(versionUrl, { headers: { origin } })).status, 401);
-    assert.equal((await (await fetch(versionUrl, { headers })).json()).version, '1.0.0');
+    const metadata = JSON.parse(await readFile(new URL('./package.json', import.meta.url), 'utf8'));
+    assert.equal((await (await fetch(versionUrl, { headers })).json()).version, metadata.version);
     const updatesUrl = url.replace('/expiry', '/updates');
     assert.equal((await fetch(updatesUrl, { method: 'POST', headers: { origin, cookie: 'session=test', 'content-type': 'application/json' }, body: '{}' })).status, 403);
     assert.equal((await fetch(updatesUrl, { method: 'POST', headers, body: JSON.stringify({ version: '1.1.0', releaseId: 123 }) })).status, 409, 'direct service requires supervisor before installing');

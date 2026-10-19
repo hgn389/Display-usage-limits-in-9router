@@ -1,6 +1,6 @@
 {
   "name": "9router-codex-addon",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Independent Codex quota and expiry dashboard addon for 9router",
   "scripts": {

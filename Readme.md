@@ -4,7 +4,7 @@
 
 ![OpenAI Codex dashboard preview](https://raw.githubusercontent.com/hgn389/Display-usage-limits-in-9router/main/images/OpenAI%20Codex.png)
 
-Version **v1.0.0** · [Tiếng Việt](Readme-vi.md) · [Installation reference](INSTALL.txt)
+Version **v1.0.1** · [Tiếng Việt](Readme-vi.md) · [Installation reference](INSTALL.txt)
 
 Adds Codex usage bars and administrator notes to the existing 9router dashboard:
 `/dashboard/providers/codex`. The native integration uses the existing dashboard
@@ -15,6 +15,7 @@ port; no browser extension is required.
 - **Weekly** on the left, **5h** next, and **End date:** on the right.
 - On `/dashboard/providers/antigravity`, a compact line below each email shows remaining quota and reset countdowns for the model groups/windows returned by 9router, refreshed approximately every 30 seconds.
 - Remaining percentages, reset countdowns, and reset clock time for 5h. Hover for the full reset timestamp in your browser timezone.
+- Percentage and reset-clock text smoothly cycles through five highlight colors every 10 seconds. Reset countdowns stay green, with a small middle dot separating the countdown from the clock, such as `4h 29m · 09:32`.
 - Automatic refresh approximately every **30 seconds** while the Codex tab is visible. At most two automatic quota requests run concurrently. Returning to the tab refreshes overdue data.
 - End date is a free-text administrator note, such as `ngày 24 hết gói Plus`. Click the square pencil button to edit; **Save**, Enter, or clicking outside saves. Escape cancels. No calendar validation or automatic account disabling.
 - Notes are stored independently in `data/package-expiry.json`, keyed by connection ID. No SQLite/database is required for the addon.

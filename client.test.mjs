@@ -409,9 +409,9 @@ test('inline reset countdown shows session clock, weekly duration, and updates w
     const { document } = dom.window;
     const session = document.querySelector('[data-codex-window=session] .codex-addon-reset');
     const weekly = document.querySelector('[data-codex-window=weekly] .codex-addon-reset');
-    assert.match(session.textContent, /Resets in 1h 52m \| \d{2}:\d{2}/);
+    assert.match(session.textContent, /Resets in 1h 52m · \d{2}:\d{2}/);
     assert.match(weekly.textContent, /Resets in 6d 4h/);
-    assert.doesNotMatch(weekly.textContent, /\|/);
+    assert.doesNotMatch(weekly.textContent, /·/);
     const input = document.querySelector('[data-codex-inline-expiry] input');
     document.querySelector('[data-codex-inline-expiry] [aria-label="Edit end date"]').click();
     input.value = '31/03/2027'; input.dispatchEvent(new dom.window.Event('input'));

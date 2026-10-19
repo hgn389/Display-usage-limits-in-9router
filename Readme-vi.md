@@ -4,7 +4,7 @@
 
 ![Giao diện dashboard OpenAI Codex](https://raw.githubusercontent.com/hgn389/Display-usage-limits-in-9router/main/images/OpenAI%20Codex.png)
 
-Phiên bản **v1.0.0** · [English](Readme.md) · [Hướng dẫn cài chi tiết](INSTALL.txt)
+Phiên bản **v1.0.1** · [English](Readme.md) · [Hướng dẫn cài chi tiết](INSTALL.txt)
 
 Bổ sung quota Codex và ghi chú quản trị vào trang gốc của 9router:
 `/dashboard/providers/codex`. Không cần cài tiện ích trình duyệt hoặc đổi cổng dashboard.
@@ -14,6 +14,7 @@ Bổ sung quota Codex và ghi chú quản trị vào trang gốc của 9router:
 - Thanh **Weekly** bên trái, **5h** ở giữa và **End date:** bên phải.
 - Trang `/dashboard/providers/antigravity` hiển thị dòng quota ngắn dưới email từng tài khoản: phần trăm còn lại và đếm ngược reset theo nhóm model/cửa sổ mà 9router trả về, tự cập nhật khoảng 30 giây/lần.
 - Hiện phần trăm còn lại, đếm ngược reset và giờ reset cho 5h. Rê chuột để xem đầy đủ ngày giờ theo múi giờ trình duyệt.
+- Phần trăm và giờ reset chuyển mượt qua 5 màu, lặp lại mỗi 10 giây. Đếm ngược reset giữ màu xanh lá; dấu chấm tròn nhỏ ngăn cách thời gian còn lại và giờ reset, ví dụ `4h 29m · 09:32`.
 - Tự cập nhật khoảng **30 giây/lần** khi tab Codex hiển thị, tối đa hai request quota đồng thời. Tab ẩn sẽ tạm dừng; quay lại sẽ cập nhật nếu đã đến hạn.
 - End date là **ghi chú text tự do**, ví dụ `ngày 24 hết gói Plus`. Nhấn nút bút trong ô vuông để sửa. Bấm **Save**, Enter hoặc nhấp ra ngoài để lưu; Escape để hủy. Không kiểm tra ngày và không tự vô hiệu hóa tài khoản.
 - Ghi chú lưu trong file **`data/package-expiry.json`** riêng của addon, theo ID kết nối. Addon không cần SQLite hay database.
