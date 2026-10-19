@@ -39,7 +39,14 @@
     .codex-addon-meter{min-width:0}
     .codex-addon-meter-label{display:block;font-size:11px;margin-bottom:3px;overflow-wrap:anywhere}
     .codex-addon-reset{display:block;font-size:10px;opacity:.75}
-    .codex-addon-percentage,.codex-addon-reset-clock{color:#facc15}
+    @keyframes codex-addon-quota-colors{
+      0%,100%{color:#facc15}
+      20%{color:#3fd1ff}
+      40%{color:#ff3fe9}
+      60%{color:#ff6800}
+      80%{color:#ff3c3c}
+    }
+    .codex-addon-percentage,.codex-addon-reset-clock{color:#facc15;animation:codex-addon-quota-colors 10s linear infinite}
     .codex-addon-duration{color:#22c55e}
     .codex-addon-track{height:7px;overflow:hidden;border-radius:999px;background:#71809633}
     .codex-addon-fill{display:block;height:100%;border-radius:inherit;background:#22a06b}
