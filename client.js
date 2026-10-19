@@ -39,6 +39,8 @@
     .codex-addon-meter{min-width:0}
     .codex-addon-meter-label{display:block;font-size:11px;margin-bottom:3px;overflow-wrap:anywhere}
     .codex-addon-reset{display:block;font-size:10px;opacity:.75}
+    .codex-addon-percentage,.codex-addon-reset-clock{color:#facc15}
+    .codex-addon-duration{color:#22c55e}
     .codex-addon-track{height:7px;overflow:hidden;border-radius:999px;background:#71809633}
     .codex-addon-fill{display:block;height:100%;border-radius:inherit;background:#22a06b}
     .codex-addon-fill[data-level="low"]{background:#d69e36}
@@ -189,16 +191,23 @@
       const minutes = Math.max(0, Math.ceil((reset.getTime() - Date.now()) / 60000));
       const days = Math.floor(minutes / 1440), hours = Math.floor(minutes % 1440 / 60), mins = minutes % 60;
       const duration = days ? `${days}d ${hours}h` : hours ? `${hours}h ${mins}m` : `${mins}m`;
-      const clock = node.dataset.codexResetWindow === 'session' ? ` | ${reset.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}` : '';
-      const text = minutes > 0 ? ` (Resets in ${duration}${clock})` : ` (Reset due${clock})`;
-      if (node.textContent !== text) node.textContent = text;
+      const clock = node.dataset.codexResetWindow === 'session' ? reset.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+      const text = minutes > 0 ? ` (Resets in ${duration}${clock ? ` | ${clock}` : ''})` : ` (Reset due${clock ? ` | ${clock}` : ''})`;
+      if (node.textContent !== text) {
+        node.replaceChildren(minutes > 0 ? ' (Resets in ' : ' (Reset due');
+        if (minutes > 0) node.append(el('span', duration, 'codex-addon-duration'));
+        if (clock) node.append(' | ', el('span', clock, 'codex-addon-reset-clock'));
+        node.append(')');
+      }
     }
   }
   function quotaMeter(key, q, loading) {
     const remaining = remainingPercent(q);
     const meter = el('div', '', 'codex-addon-meter');
     meter.dataset.codexWindow = key;
-    const label = el('span', `${labels[key]}: ${remaining === null ? (loading ? 'Loading...' : 'unavailable') : `${remaining.toFixed(0)}% remaining`}`, 'codex-addon-meter-label');
+    const label = el('span', `${labels[key]}: `, 'codex-addon-meter-label');
+    if (remaining === null) label.append(loading ? 'Loading...' : 'unavailable');
+    else label.append(el('span', `${remaining.toFixed(0)}%`, 'codex-addon-percentage'), ' remaining');
     if (q?.resetAt && Number.isFinite(new Date(q.resetAt).getTime())) {
       const reset = el('span', '', 'codex-addon-reset');
       reset.dataset.codexResetAt = new Date(q.resetAt).toISOString();
@@ -239,7 +248,9 @@
         const label = (typeof quota.displayName === 'string' ? quota.displayName : key.replaceAll('_', ' '))
           .replace(/\s*\(Weekly\)/i, ' tuần').replace(/\s*\(5h\)/i, ' 5h').replace(/Claude\s*&\s*GPT/i, 'Claude/GPT');
         const text = quota.unlimited === true ? 'không giới hạn' : remaining === null ? 'chưa có dữ liệu' : `${Math.max(0, Math.min(100, remaining)).toFixed(0)}%`;
-        const item = el('span', `${label}: ${text}`);
+        const item = el('span', `${label}: `);
+        if (remaining !== null && quota.unlimited !== true) item.append(el('span', text, 'codex-addon-percentage'));
+        else item.append(text);
         const reset = new Date(quota.resetAt || '');
         if (Number.isFinite(reset.getTime())) {
           const countdown = el('span'); countdown.dataset.antigravityResetAt = reset.toISOString();
@@ -255,7 +266,10 @@
       const days = Math.floor(minutes / 1440), hours = Math.floor(minutes % 1440 / 60), mins = minutes % 60;
       const duration = days ? `${days}d ${hours}h` : hours ? `${hours}h ${mins}m` : `${mins}m`;
       const text = minutes > 0 ? ` (reset ${duration})` : ' (đến giờ reset)';
-      if (node.textContent !== text) node.textContent = text;
+      if (node.textContent !== text) {
+        if (minutes > 0) node.replaceChildren(' (reset ', el('span', duration, 'codex-addon-duration'), ')');
+        else node.textContent = text;
+      }
     }
   }
   function inlineExpiry(id) {
